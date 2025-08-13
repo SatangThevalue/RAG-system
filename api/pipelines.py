@@ -1,7 +1,9 @@
 import os
 from typing import List, Any
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
+from chromadb import HttpClient
+from chromadb.config import Settings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -16,10 +18,17 @@ GEN_MODEL = os.getenv("HF_GENERATOR_MODEL", "google/flan-t5-base")
 TOP_K = int(os.getenv("TOP_K", "4"))
 
 embeddings = HuggingFaceEmbeddings(model_name=EMB_MODEL)
+
+chroma_client = HttpClient(
+    host=CHROMA_HOST,
+    port=CHROMA_PORT,
+    settings=Settings(allow_reset=True)  # ใส่ได้/ไม่ใส่ก็ได้
+)
+
 vectordb = Chroma(
+    client=chroma_client,
     collection_name=COLLECTION,
     embedding_function=embeddings,
-    client_settings={"chroma_server_host": CHROMA_HOST, "chroma_server_http_port": CHROMA_PORT},
 )
 
 _tokenizer = AutoTokenizer.from_pretrained(GEN_MODEL)

@@ -3,7 +3,7 @@ services:
     build: ./api
     container_name: rag_api
     env_file: .env
-    ports: ["8000:8000"]
+    ports: ["3000:8000"]
     depends_on:
       - chroma
       - redis
@@ -34,7 +34,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: bash -lc "python -m langflow run --host 0.0.0.0 --port 7860"
 
   redis:
     image: redis:7-alpine

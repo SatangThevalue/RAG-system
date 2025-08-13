@@ -1,6 +1,7 @@
 fastapi
 uvicorn[standard]
 langchain
+langchain-chroma
 langchain-core
 langchain-community
 langchain-huggingface

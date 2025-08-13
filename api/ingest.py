@@ -5,7 +5,9 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_community.document_loaders.markdown import MarkdownLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
+from chromadb import HttpClient
+from chromadb.config import Settings
 from mlflow_utils import start_run, log_params, log_metrics, log_artifact_text, end_run
 
 DOC_DIR = Path("/app/data/docs")
@@ -15,6 +17,7 @@ CHROMA_HOST = os.getenv("CHROMA_HOST", "chroma")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "800"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "120"))
+
 
 def load_docs():
     docs = []
@@ -26,6 +29,7 @@ def load_docs():
         elif path.suffix.lower() in [".txt"]:
             docs += TextLoader(str(path), encoding="utf-8").load()
     return docs
+
 
 def main():
     run = start_run(run_name="ingest")
@@ -43,40 +47,46 @@ def main():
     n_chunks = len(chunks)
 
     # log params/metrics
-    log_params({
-        "emb_model": EMB_MODEL,
-        "collection": COLLECTION,
-        "chunk_size": CHUNK_SIZE,
-        "chunk_overlap": CHUNK_OVERLAP,
-        "n_docs": n_docs,
-    })
+    log_params(
+        {
+            "emb_model": EMB_MODEL,
+            "collection": COLLECTION,
+            "chunk_size": CHUNK_SIZE,
+            "chunk_overlap": CHUNK_OVERLAP,
+            "n_docs": n_docs,
+        }
+    )
     log_metrics({"n_chunks": n_chunks})
 
     # manifest artifact
     manifest = {
-        "docs": [str(d.metadata.get("source", d.metadata.get("file_path", "unknown"))) for d in raw_docs],
+        "docs": [
+            str(d.metadata.get("source", d.metadata.get("file_path", "unknown")))
+            for d in raw_docs
+        ],
         "n_docs": n_docs,
         "n_chunks": n_chunks,
     }
-    log_artifact_text("ingest_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+    log_artifact_text(
+        "ingest_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2)
+    )
 
     embeddings = HuggingFaceEmbeddings(model_name=EMB_MODEL)
 
     print("Writing to Chroma (HTTP client)...")
+    chroma_client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
         collection_name=COLLECTION,
-        client_settings={
-            "chroma_server_host": CHROMA_HOST,
-            "chroma_server_http_port": CHROMA_PORT,
-        },
+        client=chroma_client,
     )
 
     dur = time.time() - t0
     log_metrics({"ingest_seconds": dur})
     end_run()
     print(f"Done. took {dur:.2f}s")
+
 
 if __name__ == "__main__":
     main()
