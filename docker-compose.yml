@@ -75,6 +75,40 @@ services:
     ports: ["8081:8081"]
     depends_on: [redis]
 
+  mlflow_postgres:
+    image: postgres:15
+    container_name: mlflow_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mlflow
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflow_pass
+    volumes:
+      - mlflow_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"  # แยกจาก port ของ Postgres ที่ใช้งานหลัก
+  
+  mlflow:
+    image: python:3.11-slim
+    container_name: rag_mlflow
+    depends_on:
+      - mlflow_postgres
+    working_dir: /app
+    command: >
+      bash -lc "
+      pip install --no-cache-dir mlflow==2.14.1 gunicorn &&
+      mkdir -p /mlruns/artifacts &&
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri postgresql://mlflow:mlflow_pass@mlflow_postgres:5432/mlflow
+        --default-artifact-root /mlruns/artifacts
+      "
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns_data:/mlruns
+
 volumes:
   chroma_data:
   langflow_data:
