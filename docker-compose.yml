@@ -57,7 +57,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
-      timeout: 3s
+      timeout: 3sdocker compose up -d --build
       retries: 20
 
   adminer:
@@ -86,8 +86,8 @@ services:
     volumes:
       - mlflow_pgdata:/var/lib/postgresql/data
     ports:
-      - "5435:5432"  # แยกจาก port ของ Postgres ที่ใช้งานหลัก
-  
+      - "5435:5432" # แยกจาก port ของ Postgres ที่ใช้งานหลัก
+
   mlflow:
     image: python:3.11-slim
     container_name: rag_mlflow
@@ -114,3 +114,4 @@ volumes:
   langflow_data:
   redis_data:
   pg_data:
+  mlflow_pgdata:
