@@ -1,0 +1,14 @@
+### Ingest
+POST http://localhost:8000/ingest
+
+### Query
+POST http://localhost:8000/query
+Content-Type: application/json
+
+{ "question": "สรุปเนื้อหาเอกสารทั้งหมด" }
+
+### Chat
+POST http://localhost:8000/chat
+Content-Type: application/json
+
+{ "session_id": "dev", "message": "สวัสดี ช่วยสรุปจากไฟล์ทั้งหมดหน่อย" }

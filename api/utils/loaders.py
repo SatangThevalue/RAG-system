@@ -1,0 +1,1 @@
+# add extra loaders for docx/html here
